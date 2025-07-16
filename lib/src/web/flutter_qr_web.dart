@@ -6,7 +6,7 @@ import 'dart:html' as html;
 import 'dart:js_util';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart'; // ✅ Correto para Flutter 3.22+
+import 'package:flutter_web_plugins/flutter_web_plugins.dart' as web_plugins; // ✅ Correto para Flutter 3.22+
 
 import '../../qr_code_scanner.dart';
 import 'jsqr.dart';
@@ -27,25 +27,17 @@ class WebQrView extends StatefulWidget {
   @override
   _WebQrViewState createState() => _WebQrViewState();
 
-  static html.DivElement vidDiv = html.DivElement(); // global para o view factory
+  static html.DivElement vidDiv = html.DivElement();
 
   static Future<bool> cameraAvailable() async {
-    final sources =
-        await html.window.navigator.mediaDevices!.enumerateDevices();
-    var hasCam = false;
-    for (final e in sources) {
-      if (e.kind == 'videoinput') {
-        hasCam = true;
-      }
-    }
-    return hasCam;
+    final sources = await html.window.navigator.mediaDevices!.enumerateDevices();
+    return sources.any((e) => e.kind == 'videoinput');
   }
 }
 
 class _WebQrViewState extends State<WebQrView> {
   html.MediaStream? _localStream;
   bool _currentlyProcessing = false;
-
   QRViewControllerWeb? _controller;
 
   late Size _size = const Size(0, 0);
@@ -55,8 +47,7 @@ class _WebQrViewState extends State<WebQrView> {
   html.VideoElement video = html.VideoElement();
   String viewID = 'QRVIEW-' + DateTime.now().millisecondsSinceEpoch.toString();
 
-  final StreamController<Barcode> _scanUpdateController =
-      StreamController<Barcode>();
+  final StreamController<Barcode> _scanUpdateController = StreamController<Barcode>();
   late CameraFacing facing;
 
   Timer? _frameIntervall;
@@ -68,7 +59,7 @@ class _WebQrViewState extends State<WebQrView> {
     facing = widget.cameraFacing ?? CameraFacing.front;
 
     WebQrView.vidDiv.children = [video];
-    registerViewFactory(viewID, (int id) => WebQrView.vidDiv); // ✅ Atualizado
+    web_plugins.registerViewFactory(viewID, (int id) => WebQrView.vidDiv); // ✅ atualizado
 
     Timer(const Duration(milliseconds: 500), () {
       start();
@@ -78,8 +69,7 @@ class _WebQrViewState extends State<WebQrView> {
   Future start() async {
     await _makeCall();
     _frameIntervall?.cancel();
-    _frameIntervall =
-        Timer.periodic(const Duration(milliseconds: 200), (timer) {
+    _frameIntervall = Timer.periodic(const Duration(milliseconds: 200), (timer) {
       _captureFrame2();
     });
   }
@@ -152,14 +142,12 @@ class _WebQrViewState extends State<WebQrView> {
   Future<void> _captureFrame2() async {
     if (_localStream == null) return;
 
-    final canvas =
-        html.CanvasElement(width: video.videoWidth, height: video.videoHeight);
+    final canvas = html.CanvasElement(width: video.videoWidth, height: video.videoHeight);
     final ctx = canvas.context2D;
     ctx.drawImage(video, 0, 0);
     final imgData = ctx.getImageData(0, 0, canvas.width!, canvas.height!);
 
-    final size =
-        Size(canvas.width?.toDouble() ?? 0, canvas.height?.toDouble() ?? 0);
+    final size = Size(canvas.width?.toDouble() ?? 0, canvas.height?.toDouble() ?? 0);
     if (size != _size) {
       setState(() {
         _setCanvasSize(size);
@@ -173,9 +161,7 @@ class _WebQrViewState extends State<WebQrView> {
           Barcode(code.data, BarcodeFormat.qrcode, code.data.codeUnits),
         );
       }
-    } catch (_) {
-      // erro silencioso
-    }
+    } catch (_) {}
   }
 
   @override
@@ -186,6 +172,7 @@ class _WebQrViewState extends State<WebQrView> {
     if (_localStream == null) {
       return const Center(child: CircularProgressIndicator());
     }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         var zoom = 1.0;
@@ -242,19 +229,13 @@ class QRViewControllerWeb implements QRViewController {
   }
 
   @override
-  Future<CameraFacing> getCameraInfo() async {
-    return _state.facing;
-  }
+  Future<CameraFacing> getCameraInfo() async => _state.facing;
 
   @override
-  Future<bool?> getFlashStatus() async {
-    return false;
-  }
+  Future<bool?> getFlashStatus() async => false;
 
   @override
-  Future<SystemFeatures> getSystemFeatures() {
-    throw UnimplementedError();
-  }
+  Future<SystemFeatures> getSystemFeatures() => throw UnimplementedError();
 
   @override
   bool get hasPermissions => throw UnimplementedError();
@@ -272,9 +253,7 @@ class QRViewControllerWeb implements QRViewController {
   Future<void> stopCamera() => throw UnimplementedError();
 
   @override
-  Future<void> toggleFlash() async {
-    return;
-  }
+  Future<void> toggleFlash() async {}
 
   @override
   Future<void> scanInvert(bool isScanInvert) => throw UnimplementedError();
